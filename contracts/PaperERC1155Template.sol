@@ -45,7 +45,6 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
     }
 
     modifier mintCompliant(uint256 _tokenId, uint256 _quantity) {
-        require(!isLive[_tokenId], "Not live yet");
         require(
             _quantity > 0 && _quantity <= maxMintPerTx[_tokenId],
             "Invalid mint amount!"
@@ -54,6 +53,10 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
             tokenTotalSupply[_tokenId] + _quantity <= maxTokenSupply[_tokenId],
             "Max supply exceeded!"
         );
+        _;
+    }
+    modifier tokenLive(uint256 _tokenId) {
+        require(isLive[_tokenId], "Not live yet");
         _;
     }
 
@@ -66,6 +69,8 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
         bytes calldata _signature
     )
         external
+        tokenLive(_tokenId)
+        mintCompliant(_tokenId, _quantity)
         onlyPaper(
             abi.encode(
                 keccak256(
@@ -81,6 +86,7 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
         )
     {
         // todo: your mint info here.
+        tokenTotalSupply[_tokenId] += _quantity;
         _mint(_recipient, _tokenId, _quantity, "");
     }
 
@@ -93,7 +99,9 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
         payable
         mintCompliant(_tokenId, _quantity)
         priceCompliant(_tokenId, _quantity)
+        tokenLive(_tokenId)
     {
+        tokenTotalSupply[_tokenId] += _quantity;
         _mint(_to, _tokenId, _quantity, "");
     }
 
@@ -162,22 +170,6 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
         onlyOwner
     {
         maxTokenSupply[_tokenId] = _maxSupply;
-    }
-
-    function mint(
-        address _to,
-        uint256 _amout,
-        uint256 _id
-    ) external onlyOwner {
-        _mint(_to, _id, _amout, "");
-    }
-
-    function mintBatch(
-        address _to,
-        uint256[] memory _amounts,
-        uint256[] memory _ids
-    ) external onlyOwner {
-        _mintBatch(_to, _ids, _amounts, "");
     }
 
     function burn(uint256 _id, uint256 _amount) external {

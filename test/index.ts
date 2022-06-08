@@ -1,6 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { BigNumber, utils } from "ethers";
+import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 import { CollectionConfig } from "../config/CollectionConfig";
 import { ContractArguments } from "../config/ContractArguments";
@@ -44,12 +44,7 @@ describe("Paper mint function", function () {
   before(async function () {
     [owner, externalUser, paperKeySigner, recipient] =
       await ethers.getSigners();
-    message = {
-      recipient: recipient?.address,
-      quantity: 1,
-      tokenId: getFirstTokenId(tokenIds),
-      nonce: ethers.utils.formatBytes32String(nonce(31)),
-    };
+
     const Contract = await ethers.getContractFactory(
       CollectionConfig.contractName
     );
@@ -60,11 +55,29 @@ describe("Paper mint function", function () {
     )) as NftContractType;
     await contract.deployed();
 
+    const mintDetails = CollectionConfig.mintDetails[0];
+
+    await contract
+      .connect(owner)
+      .launchToken(
+        mintDetails.tokenId,
+        ethers.utils.parseEther(mintDetails.priceInEther.toString()),
+        mintDetails.maxSupply,
+        mintDetails.maxMintPerTx,
+        mintDetails.uri
+      );
+
     domain = {
       name: "Paper",
       version: "1",
       chainId: await paperKeySigner.getChainId(),
       verifyingContract: contract.address,
+    };
+    message = {
+      recipient: recipient?.address,
+      quantity: 1,
+      tokenId: getFirstTokenId(tokenIds),
+      nonce: ethers.utils.formatBytes32String(nonce(31)),
     };
   });
 
@@ -162,61 +175,99 @@ describe(CollectionConfig.contractName, () => {
     expect(await contract.uri(15124)).to.be.empty;
   });
 
-  it("Before setting mint-able token", async function () {
+  it("Should not be able to mint token", async function () {
     // No one can mint if token is not set
-    expect(
-      contract.connect(externalUser1).claimTo(externalUser1.address, 1, 0)
-    ).to.be.revertedWith("Not live yet");
-    expect(
-      contract.connect(holder).claimTo(holder.address, 1, 0)
-    ).to.be.revertedWith("Not live yet");
-    expect(
-      contract.connect(owner).claimTo(owner.address, 1, 0)
-    ).to.be.revertedWith("Not live yet");
-
-    // Owner can still mint to user
-    const holderAddr = await holder.getAddress();
-    await (
-      await contract
-        .connect(owner)
-        .mint(holderAddr, 1, getFirstTokenId(tokenIds))
-    ).wait();
-    expect(
-      contract.balanceOf(holderAddr, getFirstTokenId(tokenIds))
-    ).to.deep.equal(ethers.BigNumber.from(1));
-
-    await (
-      await contract
-        .connect(owner)
-        .mintBatch(
-          holderAddr,
-          [2, 3],
-          [getFirstTokenId(tokenIds), getFirstTokenId(tokenIds) + 1]
-        )
-    ).wait();
-    expect(
-      contract.balanceOf(holderAddr, getFirstTokenId(tokenIds))
-    ).to.deep.equal(ethers.BigNumber.from(3));
-    expect(
-      contract.balanceOf(holderAddr, getFirstTokenId(tokenIds) + 1)
-    ).to.deep.equal(ethers.BigNumber.from(3));
-  });
-
-  it("Should be able to set mintable token", async function () {});
-
-  it("Owner only functions", async function () {
     expect(
       contract
         .connect(externalUser1)
-        .mint(await externalUser1.getAddress(), 1, getFirstTokenId(tokenIds))
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+        .claimTo(externalUser1.address, 1, getFirstTokenId(tokenIds))
+    ).to.be.revertedWith("Not live yet");
+    expect(
+      contract
+        .connect(holder)
+        .claimTo(holder.address, 1, getFirstTokenId(tokenIds))
+    ).to.be.revertedWith("Not live yet");
+    expect(
+      contract
+        .connect(owner)
+        .claimTo(owner.address, 1, getFirstTokenId(tokenIds))
+    ).to.be.revertedWith("Not live yet");
+  });
+
+  it("Should be able to set mint and mint token", async function () {
+    const mintDetails = CollectionConfig.mintDetails[0];
+    expect(
+      contract.connect(holder).claimTo(holder.address, 1, mintDetails.tokenId)
+    ).to.be.revertedWith("Not live yet");
+
+    await contract
+      .connect(owner)
+      .launchToken(
+        mintDetails.tokenId,
+        ethers.utils.parseEther(mintDetails.priceInEther.toString()),
+        mintDetails.maxSupply,
+        mintDetails.maxMintPerTx,
+        mintDetails.uri
+      );
+    expect(await contract.price(mintDetails.tokenId)).to.be.deep.equal(
+      ethers.utils.parseEther(mintDetails.priceInEther.toString())
+    );
+    expect(await contract.maxMintPerTx(mintDetails.tokenId)).to.deep.equal(
+      mintDetails.maxMintPerTx
+    );
+    expect(await contract.maxTokenSupply(mintDetails.tokenId)).to.equal(
+      mintDetails.maxSupply
+    );
+    expect(await contract.isLive(mintDetails.tokenId)).to.be.true;
+    expect(await contract.uri(mintDetails.tokenId)).to.be.equal(
+      mintDetails.uri
+    );
+    expect(await contract.unclaimedSupply(mintDetails.tokenId)).to.equal(
+      mintDetails.maxSupply
+    );
+
+    const holderAddr = await holder.getAddress();
+    expect(
+      contract.connect(holder).claimTo(holderAddr, 1, mintDetails.tokenId)
+    ).to.be.revertedWith("Insufficient funds for purchase");
+    expect(
+      contract.connect(holder).claimTo(holderAddr, 0, mintDetails.tokenId)
+    ).to.be.revertedWith("Invalid mint amount!");
+    expect(
+      contract
+        .connect(holder)
+        .claimTo(holderAddr, mintDetails.maxSupply + 1, mintDetails.tokenId)
+    ).to.be.revertedWith("Invalid mint amount!");
+
+    await contract.connect(holder).claimTo(holderAddr, 1, mintDetails.tokenId, {
+      value: ethers.utils.parseEther(mintDetails.priceInEther.toString()),
+    });
+    expect(
+      await contract.balanceOf(holderAddr, mintDetails.tokenId)
+    ).to.deep.equal(ethers.BigNumber.from(1));
+
+    expect(await contract.unclaimedSupply(mintDetails.tokenId)).to.equal(
+      mintDetails.maxSupply - 1
+    );
+
+    expect(
+      contract
+        .connect(holder)
+        .claimTo(holderAddr, mintDetails.maxSupply, mintDetails.tokenId)
+    ).to.be.revertedWith("Max supply exceeded!");
+  });
+
+  it("Owner only functions", async function () {
     expect(
       contract.connect(externalUser1).setLive(getFirstTokenId(tokenIds), false)
     ).to.be.revertedWith("Ownable: caller is not the owner");
     expect(
       contract
         .connect(externalUser1)
-        .setPrice(getFirstTokenId(tokenIds), utils.parseEther("0.0000001"))
+        .setPrice(
+          getFirstTokenId(tokenIds),
+          ethers.utils.parseEther("0.0000001")
+        )
     ).to.be.revertedWith("Ownable: caller is not the owner");
     expect(
       contract
