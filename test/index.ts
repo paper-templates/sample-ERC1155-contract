@@ -22,7 +22,7 @@ describe("Paper mint function", function () {
     verifyingContract: string;
   };
   const types = {
-    PrimaryData: [
+    MintData: [
       {
         name: "recipient",
         type: "address",
@@ -88,13 +88,7 @@ describe("Paper mint function", function () {
       message
     );
 
-    await contract.paperMint(
-      message.recipient,
-      message.quantity,
-      message.tokenId,
-      message.nonce,
-      signature
-    );
+    await contract.paperMint({ ...message, signature }, "0x");
 
     expect(
       await contract.balanceOf(recipient.address, getFirstTokenId(tokenIds))
@@ -107,13 +101,7 @@ describe("Paper mint function", function () {
       message
     );
     await expect(
-      contract.paperMint(
-        message.recipient,
-        message.quantity,
-        message.tokenId,
-        message.nonce,
-        signature
-      )
+      contract.paperMint({ ...message, signature }, "0x")
     ).to.be.revertedWith("'Mint request already processed");
   });
 
@@ -121,13 +109,7 @@ describe("Paper mint function", function () {
     const signature = await externalUser._signTypedData(domain, types, message);
 
     await expect(
-      contract.paperMint(
-        message.recipient,
-        message.quantity,
-        message.tokenId,
-        message.nonce,
-        signature
-      )
+      contract.paperMint({ ...message, signature }, "0x")
     ).to.be.revertedWith("Invalid signature");
   });
 });

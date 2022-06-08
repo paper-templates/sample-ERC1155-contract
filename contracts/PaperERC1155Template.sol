@@ -61,33 +61,18 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
     }
 
     function paperMint(
-        address _recipient,
-        uint256 _quantity,
-        uint256 _tokenId,
-        // Paper params
-        bytes32 _nonce,
-        bytes calldata _signature
+        PaperMintData.MintData calldata _mintData,
+        bytes memory data
     )
         external
-        tokenLive(_tokenId)
-        mintCompliant(_tokenId, _quantity)
-        onlyPaper(
-            abi.encode(
-                keccak256(
-                    "PrimaryData(address recipient,uint256 quantity,uint256 tokenId,bytes32 nonce)"
-                ),
-                _recipient,
-                _quantity,
-                _tokenId,
-                _nonce
-            ),
-            _nonce,
-            _signature
-        )
+        payable
+        tokenLive(_mintData.tokenId)
+        mintCompliant(_mintData.tokenId, _mintData.quantity)
+        onlyPaper(_mintData)
     {
         // todo: your mint info here.
-        tokenTotalSupply[_tokenId] += _quantity;
-        _mint(_recipient, _tokenId, _quantity, "");
+        tokenTotalSupply[_mintData.tokenId] += _mintData.quantity;
+        _mint(_mintData.recipient, _mintData.tokenId, _mintData.quantity, data);
     }
 
     function claimTo(
