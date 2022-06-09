@@ -60,6 +60,10 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
         _;
     }
 
+    /// @dev Used after a user completes a fiat or cross chain crypto payment by paper's backend to mint a new token for user.
+    /// Should _not_ have price check if you intend to off ramp in Fiat or if you want dynamic pricing.
+    /// Enables custom metadata to be passed to the contract for whitelist, custom params, etc. via bytes data
+    /// @param _mintData Contains information on the tokenId, quantity, recipient and more.
     function paperMint(
         PaperMintData.MintData calldata _mintData,
         bytes memory data
@@ -70,11 +74,16 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
         mintCompliant(_mintData.tokenId, _mintData.quantity)
         onlyPaper(_mintData)
     {
-        // todo: your mint info here.
+        // todo: your mint method here.
         tokenTotalSupply[_mintData.tokenId] += _mintData.quantity;
         _mint(_mintData.recipient, _mintData.tokenId, _mintData.quantity, data);
     }
 
+    /// @dev used for native minting on Paper platform
+    /// Also used if you don't intend to take advantage of the Fiat or Cross Chain Crypto features in the paperMint method.
+    /// @param _to address of the recipient
+    /// @param _quantity quantity of the token to mint
+    /// @param _tokenId tokenId of the token to mint
     function claimTo(
         address _to,
         uint256 _quantity,
@@ -86,6 +95,7 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
         priceCompliant(_tokenId, _quantity)
         tokenLive(_tokenId)
     {
+        // todo: your mint method here.
         tokenTotalSupply[_tokenId] += _quantity;
         _mint(_to, _tokenId, _quantity, "");
     }
