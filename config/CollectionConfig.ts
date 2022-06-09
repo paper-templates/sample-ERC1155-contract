@@ -1,6 +1,5 @@
 export const CollectionConfig = {
   contractName: "PaperERC1155Template",
-  baseUri: "ipfs://QmZxqFxfHwqjGSYSKyVp7AR1qKQjy6Bq4YSo7GbnbnE6gc",
   paperKey: "0xc763841d2845fBC51A6b5681727bbE87198Dd50D",
   tokenName: "Paper ERC1155 Template",
   tokenSymbol: "PET",
