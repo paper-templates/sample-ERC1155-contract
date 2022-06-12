@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 import { CollectionConfig } from "../config/CollectionConfig";
-import { ContractArguments } from "../config/ContractArguments";
+import ContractArguments from "../config/ContractArguments";
 import { NftContractType } from "../lib/NftContractProvider";
 import { getFirstTokenId, getTokenIds, nonce } from "../lib/utils";
 

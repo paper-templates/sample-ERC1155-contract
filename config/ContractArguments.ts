@@ -1,7 +1,9 @@
 import { CollectionConfig } from "./CollectionConfig";
 
-export const ContractArguments = [
+const ContractArguments = [
   CollectionConfig.paperKey,
   CollectionConfig.tokenName,
   CollectionConfig.tokenSymbol,
 ] as const;
+
+export default ContractArguments;
