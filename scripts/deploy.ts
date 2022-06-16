@@ -5,7 +5,7 @@
 // Runtime Environment's members available in the global scope.
 import { ethers } from "hardhat";
 import { CollectionConfig } from "../config/CollectionConfig";
-import { ContractArguments } from "../config/ContractArguments";
+import ContractArguments from "../config/ContractArguments";
 
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
