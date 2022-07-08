@@ -6,6 +6,8 @@ import * as dotenv from "dotenv";
 import "hardhat-gas-reporter";
 import { HardhatUserConfig, task } from "hardhat/config";
 import "solidity-coverage";
+import "./task/setPaperKey";
+import "./task/setPrice";
 
 dotenv.config();
 
@@ -81,12 +83,12 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       // Ethereum
-      rinkeby: process.env.ETH_BLOCK_EXPLORER_API_KEY,
-      mainnet: process.env.ETH_BLOCK_EXPLORER_API_KEY,
+      rinkeby: process.env.ETH_BLOCK_EXPLORER_API_KEY as string,
+      mainnet: process.env.ETH_BLOCK_EXPLORER_API_KEY as string,
 
       // Polygon
-      polygon: process.env.POLYGON_BLOCK_EXPLORER_API_KEY,
-      polygonMumbai: process.env.POLYGON_BLOCK_EXPLORER_API_KEY,
+      polygon: process.env.POLYGON_BLOCK_EXPLORER_API_KEY as string,
+      polygonMumbai: process.env.POLYGON_BLOCK_EXPLORER_API_KEY as string,
     },
   },
 };
