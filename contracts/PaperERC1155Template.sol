@@ -64,10 +64,7 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
     /// Should _not_ have price check if you intend to off ramp in Fiat or if you want dynamic pricing.
     /// Enables custom metadata to be passed to the contract for whitelist, custom params, etc. via bytes data
     /// @param _mintData Contains information on the tokenId, quantity, recipient and more.
-    function paperMint(
-        PaperMintData.MintData calldata _mintData,
-        bytes memory data
-    )
+    function paperMint(PaperMintData.MintData calldata _mintData)
         external
         payable
         tokenLive(_mintData.tokenId)
@@ -76,7 +73,12 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
     {
         // todo: your mint method here.
         tokenTotalSupply[_mintData.tokenId] += _mintData.quantity;
-        _mint(_mintData.recipient, _mintData.tokenId, _mintData.quantity, data);
+        _mint(
+            _mintData.recipient,
+            _mintData.tokenId,
+            _mintData.quantity,
+            _mintData.data
+        );
     }
 
     /// @dev used for native minting on Paper platform

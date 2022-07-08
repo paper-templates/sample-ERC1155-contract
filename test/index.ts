@@ -30,6 +30,7 @@ describe("Paper mint function", function () {
       { name: "quantity", type: "uint256" },
       { name: "tokenId", type: "uint256" },
       { name: "nonce", type: "bytes32" },
+      { name: "data", type: "bytes" },
     ],
   };
   const tokenIds = getTokenIds();
@@ -39,6 +40,7 @@ describe("Paper mint function", function () {
     quantity: number;
     tokenId: number;
     nonce: string;
+    data: string;
   };
 
   before(async function () {
@@ -78,6 +80,7 @@ describe("Paper mint function", function () {
       quantity: 1,
       tokenId: getFirstTokenId(tokenIds),
       nonce: ethers.utils.formatBytes32String(nonce(31)),
+      data: "0x",
     };
   });
 
@@ -88,7 +91,7 @@ describe("Paper mint function", function () {
       message
     );
 
-    await contract.paperMint({ ...message, signature }, "0x");
+    await contract.paperMint({ ...message, signature });
 
     expect(
       await contract.balanceOf(recipient.address, getFirstTokenId(tokenIds))
@@ -101,7 +104,7 @@ describe("Paper mint function", function () {
       message
     );
     await expect(
-      contract.paperMint({ ...message, signature }, "0x")
+      contract.paperMint({ ...message, signature })
     ).to.be.revertedWith("'Mint request already processed");
   });
 
@@ -109,7 +112,7 @@ describe("Paper mint function", function () {
     const signature = await externalUser._signTypedData(domain, types, message);
 
     await expect(
-      contract.paperMint({ ...message, signature }, "0x")
+      contract.paperMint({ ...message, signature })
     ).to.be.revertedWith("Invalid signature");
   });
 });
