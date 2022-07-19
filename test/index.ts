@@ -50,8 +50,7 @@ describe("Paper mint function", function () {
     const Contract = await ethers.getContractFactory(
       CollectionConfig.contractName
     );
-    Contract.connect(owner);
-    contract = (await Contract.deploy(
+    contract = (await Contract.connect(owner).deploy(
       paperKeySigner.address,
       ...ContractArguments.slice(1)
     )) as NftContractType;
