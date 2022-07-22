@@ -4,11 +4,13 @@ pragma solidity ^0.8.9;
 import "hardhat/console.sol";
 import "@paperxyz/contracts/verification/PaperVerification.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
     string public name;
     string public symbol;
+    address public zeroAddress = 0x0000000000000000000000000000000000000000;
 
     mapping(uint256 => string) public tokenURI;
 
@@ -27,6 +29,8 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
     // Mapping from tokenId to price of NFT
     mapping(uint256 => uint256) public price;
 
+    mapping(uint256 => address) public currency;
+
     constructor(
         address _paperKey,
         string memory _tokenName,
@@ -37,10 +41,20 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
     }
 
     modifier priceCompliant(uint256 _tokenId, uint256 _quantity) {
-        require(
-            msg.value >= _quantity * price[_tokenId],
-            "Insufficient funds for purchase"
-        );
+        address currencyAddr = currency[_tokenId];
+        uint256 priceAmount = price[_tokenId] * _quantity;
+        if (currencyAddr == zeroAddress) {
+            require(
+                msg.value >= priceAmount,
+                "Insufficient funds for purchase"
+            );
+        } else {
+            IERC20(currencyAddr).transferFrom(
+                msg.sender,
+                address(this),
+                priceAmount
+            );
+        }
         _;
     }
 
@@ -130,6 +144,7 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
 
     function launchToken(
         uint256 _tokenId,
+        address _currency,
         uint256 _price,
         uint256 _maxSupply,
         uint256 _maxMintPerTx,
@@ -138,12 +153,22 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
         setPrice(_tokenId, _price);
         setMaxTokenSupply(_tokenId, _maxSupply);
         setMaxMintPerTx(_tokenId, _maxMintPerTx);
+        setCurrency(_tokenId, _currency);
         setURI(_tokenId, _uri);
         setLive(_tokenId, true);
     }
 
-    function withdraw(address payable _to) external onlyOwner {
+    function withdrawNativeCoin(address payable _to) external onlyOwner {
         (bool success, ) = _to.call{value: address(this).balance}("");
+        require(success, "withdraw failed");
+    }
+
+    function withdrawCurrency(address payable _to, address _currency)
+        external
+        onlyOwner
+    {
+        uint256 balance = IERC20(_currency).balanceOf(address(this));
+        bool success = IERC20(_currency).transfer(_to, balance);
         require(success, "withdraw failed");
     }
 
@@ -160,6 +185,13 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
 
     function setPrice(uint256 _tokenId, uint256 _price) public onlyOwner {
         price[_tokenId] = _price;
+    }
+
+    function setCurrency(uint256 _tokenId, address _tokenAddress)
+        public
+        onlyOwner
+    {
+        currency[_tokenId] = _tokenAddress;
     }
 
     function setMaxTokenSupply(uint256 _tokenId, uint256 _maxSupply)

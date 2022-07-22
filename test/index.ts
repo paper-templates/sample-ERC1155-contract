@@ -6,6 +6,9 @@ import { CollectionConfig } from "../config/CollectionConfig";
 import ContractArguments from "../config/ContractArguments";
 import { NftContractType } from "../lib/NftContractProvider";
 import { getFirstTokenId, getTokenIds, nonce } from "../lib/utils";
+import { IERC20 } from "../typechain-types";
+
+const IERC20 = "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20";
 
 describe("Paper mint function", function () {
   let owner!: SignerWithAddress;
@@ -62,6 +65,7 @@ describe("Paper mint function", function () {
       .connect(owner)
       .launchToken(
         mintDetails.tokenId,
+        ethers.constants.AddressZero,
         ethers.utils.parseEther(mintDetails.priceInEther.toString()),
         mintDetails.maxSupply,
         mintDetails.maxMintPerTx,
@@ -117,6 +121,7 @@ describe("Paper mint function", function () {
 });
 
 describe(CollectionConfig.contractName, () => {
+  const USDC_ETH_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
   let owner!: SignerWithAddress;
   let externalUser1!: SignerWithAddress;
   let holder!: SignerWithAddress;
@@ -124,8 +129,18 @@ describe(CollectionConfig.contractName, () => {
   let contract!: NftContractType;
   const tokenIds = getTokenIds();
 
+  let usdcContract!: IERC20;
+  let usdcWhale!: SignerWithAddress;
+
   before(async function () {
     [owner, externalUser1, externalUser2, holder] = await ethers.getSigners();
+    usdcWhale = await ethers.getImpersonatedSigner(
+      "0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549"
+    );
+    usdcContract = (await ethers.getContractAt(
+      IERC20,
+      USDC_ETH_ADDRESS
+    )) as IERC20;
   });
 
   it("Contract deployment", async function () {
@@ -188,6 +203,7 @@ describe(CollectionConfig.contractName, () => {
       .connect(owner)
       .launchToken(
         mintDetails.tokenId,
+        ethers.constants.AddressZero,
         ethers.utils.parseEther(mintDetails.priceInEther.toString()),
         mintDetails.maxSupply,
         mintDetails.maxMintPerTx,
@@ -241,6 +257,32 @@ describe(CollectionConfig.contractName, () => {
     ).to.be.revertedWith("Max supply exceeded!");
   });
 
+  it("Should be able to mint with USDC", async function () {
+    const mintDetails = CollectionConfig.mintDetails[0];
+    await contract.launchToken(
+      mintDetails.tokenId,
+      USDC_ETH_ADDRESS,
+      ethers.utils.parseUnits("0.5", "6"),
+      mintDetails.maxSupply,
+      mintDetails.maxMintPerTx,
+      mintDetails.uri
+    );
+
+    const price = await contract.price(mintDetails.tokenId);
+
+    await usdcContract.connect(usdcWhale).approve(contract.address, price);
+    await contract.connect(usdcWhale).claimTo(externalUser1.address, 1, 0);
+
+    expect(await usdcContract.balanceOf(contract.address)).to.deep.equal(price);
+
+    expect(await contract.price(mintDetails.tokenId)).to.deep.equal(
+      ethers.utils.parseUnits("0.5", "6")
+    );
+    expect(await contract.currency(mintDetails.tokenId)).to.equal(
+      USDC_ETH_ADDRESS
+    );
+  });
+
   it("Owner only functions", async function () {
     expect(
       contract.connect(externalUser1).setLive(getFirstTokenId(tokenIds), false)
@@ -273,7 +315,35 @@ describe(CollectionConfig.contractName, () => {
     ).to.be.revertedWith("Ownable: caller is not the owner");
 
     expect(
-      contract.connect(externalUser1).withdraw(await externalUser1.getAddress())
+      contract
+        .connect(externalUser1)
+        .withdrawNativeCoin(await externalUser1.getAddress())
     ).to.be.revertedWith("Ownable: caller is not the owner");
+    expect(
+      contract
+        .connect(externalUser1)
+        .withdrawCurrency(USDC_ETH_ADDRESS, await externalUser1.getAddress())
+    ).to.be.revertedWith("Ownable: caller is not the owner");
+  });
+
+  it("Should be able to withdraw funds", async function () {
+    const mintDetails = CollectionConfig.mintDetails[0];
+    const initAmount = await ethers.provider.getBalance(externalUser1.address);
+    await contract.connect(owner).withdrawNativeCoin(externalUser1.address);
+    expect(
+      (await ethers.provider.getBalance(externalUser1.address)).gt(initAmount)
+    ).to.be.true;
+
+    const initBalance = ethers.utils.parseUnits("1", "6");
+    expect(await usdcContract.balanceOf(externalUser1.address)).to.deep.equal(
+      initBalance
+    );
+    const price = ethers.utils.parseUnits("0.5", "6");
+    await contract
+      .connect(owner)
+      .withdrawCurrency(externalUser1.address, USDC_ETH_ADDRESS);
+    expect(await usdcContract.balanceOf(externalUser1.address)).to.deep.equal(
+      price.add(initBalance)
+    );
   });
 });

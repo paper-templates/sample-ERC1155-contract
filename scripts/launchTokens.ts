@@ -11,7 +11,8 @@ async function main() {
     console.log("Deploying token: ", token);
     const resp = await contract.launchToken(
       token.tokenId,
-      ethers.utils.parseEther(token.priceInEther.toString()),
+      token.address,
+      ethers.utils.parseUnits(token.priceInEther.toString(), token.decimals),
       token.maxSupply,
       token.maxMintPerTx,
       token.uri

@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { CollectionConfig } from "../config/CollectionConfig";
-import { PaperERC1155Template } from "../typechain";
+import { PaperERC1155Template } from "../typechain-types";
 
 export type NftContractType = PaperERC1155Template;
 

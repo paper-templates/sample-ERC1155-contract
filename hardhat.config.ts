@@ -33,6 +33,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
  * estimated value.
  */
 const DEFAULT_GAS_MULTIPLIER: number = 1;
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -48,28 +49,30 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    truffle: {
-      url: "http://localhost:24012/rpc",
-      timeout: 60000,
-      gasMultiplier: DEFAULT_GAS_MULTIPLIER,
+    hardhat: {
+      forking: {
+        url: `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
+        // to enable caching for speeding up tests
+        blockNumber: 15170231,
+      },
     },
     rinkeby: {
-      url: `eth-rinkeby.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
+      url: `eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
       accounts: [process.env.RINKEBY_PRIVATE_KEY!],
       gasMultiplier: DEFAULT_GAS_MULTIPLIER,
     },
     mainnet: {
-      url: `eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
+      url: `eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
       accounts: [process.env.ETH_PRIVATE_KEY!],
       gasMultiplier: DEFAULT_GAS_MULTIPLIER,
     },
     matic: {
-      url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+      url: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
       accounts: [process.env.MATIC_PRIVATE_KEY!],
       gasMultiplier: DEFAULT_GAS_MULTIPLIER,
     },
     mumbai: {
-      url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+      url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
       accounts: [process.env.MUMBAI_PRIVATE_KEY!],
       gasMultiplier: DEFAULT_GAS_MULTIPLIER,
     },
