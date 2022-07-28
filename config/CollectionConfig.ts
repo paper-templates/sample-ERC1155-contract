@@ -1,11 +1,10 @@
 export const CollectionConfig = {
   contractName: "PaperERC1155Template",
-  paperKey: "0xc763841d2845fBC51A6b5681727bbE87198Dd50D",
   tokenName: "Paper ERC1155 Template",
   tokenSymbol: "PET",
   mintDetails: [
     {
-      priceInEther: 0.01,
+      priceInEther: 2,
       decimals: 18,
       address: "0x0000000000000000000000000000000000000000",
       tokenId: 0,
@@ -23,5 +22,5 @@ export const CollectionConfig = {
       uri: "ipfs://QmZxqFxfHwqjGSYSKyVp7AR1qKQjy6Bq4YSo7GbnbnE6gc/0",
     },
   ],
-  deployedContractAddress: null,
+  deployedContractAddress: "0x9E6f4CB4e02Bc2153a1Ba8b74104b1ED44260518",
 };
