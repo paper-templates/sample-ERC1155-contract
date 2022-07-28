@@ -1,13 +1,11 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "hardhat/console.sol";
-import "@paperxyz/contracts/verification/PaperVerification.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
+contract PaperERC1155Template is ERC1155, Ownable {
     string public name;
     string public symbol;
     address public zeroAddress = 0x0000000000000000000000000000000000000000;
@@ -31,11 +29,9 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
 
     mapping(uint256 => address) public currency;
 
-    constructor(
-        address _paperKey,
-        string memory _tokenName,
-        string memory _tokenSymbol
-    ) ERC1155("") PaperVerification(_paperKey) {
+    constructor(string memory _tokenName, string memory _tokenSymbol)
+        ERC1155("")
+    {
         name = _tokenName;
         symbol = _tokenSymbol;
     }
@@ -72,27 +68,6 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
     modifier tokenLive(uint256 _tokenId) {
         require(isLive[_tokenId], "Not live yet");
         _;
-    }
-
-    /// @dev Used after a user completes a fiat or cross chain crypto payment by paper's backend to mint a new token for user.
-    /// Should _not_ have price check if you intend to off ramp in Fiat or if you want dynamic pricing.
-    /// Enables custom metadata to be passed to the contract for whitelist, custom params, etc. via bytes data
-    /// @param _mintData Contains information on the tokenId, quantity, recipient and more.
-    function paperMint(PaperMintData.MintData calldata _mintData)
-        external
-        payable
-        tokenLive(_mintData.tokenId)
-        mintCompliant(_mintData.tokenId, _mintData.quantity)
-        onlyPaper(_mintData)
-    {
-        // todo: your mint method here.
-        tokenTotalSupply[_mintData.tokenId] += _mintData.quantity;
-        _mint(
-            _mintData.recipient,
-            _mintData.tokenId,
-            _mintData.quantity,
-            _mintData.data
-        );
     }
 
     /// @dev used for native minting on Paper platform
@@ -136,10 +111,6 @@ contract PaperERC1155Template is ERC1155, Ownable, PaperVerification {
 
     function unclaimedSupply(uint256 _tokenId) public view returns (uint256) {
         return maxTokenSupply[_tokenId] - tokenTotalSupply[_tokenId];
-    }
-
-    function setPaperKey(address _paperKey) external onlyOwner {
-        _setPaperKey(_paperKey);
     }
 
     function launchToken(
